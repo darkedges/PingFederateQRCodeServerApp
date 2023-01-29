@@ -4,7 +4,6 @@ namespace PingFederateQRCodeServerApp.Controllers
 {
     public class QRCodeInitResponse
     {
-
-		public string username { get; set; } = "";
+		public string userId { get; set; } = "";
 	}
 }

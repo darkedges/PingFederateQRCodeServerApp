@@ -42,7 +42,7 @@
 			</div>
 		</div>
 		<div hidden="@(!IsAuthenticated)">
-			<h2>Welcome @_userId</h2>
+			<h2>Init</h2>
 			<table class="table table-striped">
 				<thead class="thead-light">
 					<tr>
@@ -50,7 +50,9 @@
 						<th scope="col">Value</th>
 					</tr>
 				</thead>
-				@foreach (var dropDownOption in _qrCodeInitProperties)
+				@foreach (var dropDownOption in _data?.GetType()
+						.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+						.ToDictionary(prop => prop.Name, prop => (string)prop.GetValue(_data, null)))
 				{
 					<tr>
 						<td>
@@ -60,8 +62,31 @@
 							@dropDownOption.Value
 						</td>
 					</tr>
+					}
+			</table>
+			<h2>Response</h2>
+			<table class="table table-striped">
+				<thead class="thead-light">
+					<tr>
+						<th scope="col">Key</th>
+						<th scope="col">Value</th>
+				</tr>
+				</thead>
+				@foreach (var dropDownOption in _qrCodeInitResponse?.GetType()
+								.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+						.ToDictionary(prop => prop.Name, prop => (string)prop.GetValue(_qrCodeInitResponse, null)))
+				{
+						<tr>
+							<td>
+							@dropDownOption.Key
+							</td>
+							<td>
+							@dropDownOption.Value
+							</td>
+						</tr>
 				}
 			</table>
+			<h2>Messages</h2>
 			<ul id="messagesList">
 				@foreach (var message in messages)
 				{
@@ -80,7 +105,7 @@
 	private Boolean IsAuthenticated = false;
 	private QRCodeInitRequest? _data;
 	private PersistingComponentStateSubscription persistingSubscription;
-	private Dictionary<string, string>? _qrCodeInitProperties;
+	private QRCodeInitResponse? _qrCodeInitResponse = new QRCodeInitResponse();
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -103,6 +128,8 @@
 			_userId = userId;
 			IsAuthenticated = true;
 			var encodedMsg = $"Authenticated: {userId}";
+			_qrCodeInitResponse.userId = userId;
+			Console.WriteLine(_qrCodeInitResponse.userId);
 			messages.Add(encodedMsg);
 			InvokeAsync(StateHasChanged);
 		});
@@ -119,9 +146,6 @@
 		{
 			_data = restored!;
 		}
-		_qrCodeInitProperties = _data.GetType()
-		.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-				.ToDictionary(prop => prop.Name, prop => (string)prop.GetValue(_data, null));
 		await hubConnection.StartAsync();
 	}
 
