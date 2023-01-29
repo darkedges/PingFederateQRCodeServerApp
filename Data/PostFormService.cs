@@ -4,6 +4,6 @@ namespace PingFederateQRCodeServerApp.Data
 {
     public class PostFormService
     {
-        public QRCodeInit? QRCodeJump { get; set; }
+        public QRCodeInitRequest? QRCodeJump { get; set; }
     }
 }

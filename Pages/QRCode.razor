@@ -78,7 +78,7 @@
 	private string? _connectionId = "";
 	private string? _userId = "";
 	private Boolean IsAuthenticated = false;
-	private QRCodeInit? _data;
+	private QRCodeInitRequest? _data;
 	private PersistingComponentStateSubscription persistingSubscription;
 	private Dictionary<string, string>? _qrCodeInitProperties;
 
@@ -110,7 +110,7 @@
 		persistingSubscription =
 			ApplicationState.RegisterOnPersisting(PersistData);
 
-		if (!ApplicationState.TryTakeFromJson<QRCodeInit>(
+		if (!ApplicationState.TryTakeFromJson<QRCodeInitRequest>(
 			"qrCodeInit", out var restored))
 		{
 			_data = PostFormService.QRCodeJump;

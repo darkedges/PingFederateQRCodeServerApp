@@ -84,3 +84,7 @@ a, .btn-link {
 #qrcode {
     text-align: center;
 }
+
+#text {
+    width: 485px;
+}
