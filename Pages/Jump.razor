@@ -1,0 +1,21 @@
+﻿@page "/jump"
+@using PingFederateQRCodeServerApp.Controllers;
+
+<PageTitle>jump</PageTitle>
+<div id="center-screen">
+	<div id="auth">
+		<h1>QR Code Authenticator</h1>
+		<div id="qrcode">
+			<form method="post" action="/qrcode">
+				<input type="hidden" name="item1" value="Item 1" />
+				<input type="hidden" name="item2" value="Item 2" />
+				<input type="hidden" name="item3" value="Item 3" />
+				<input type="hidden" name="item4" value="Item 4" />
+				<input type="submit" />
+			</form>
+		</div>
+	</div>
+</div>
+
+@code {
+}

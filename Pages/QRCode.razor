@@ -1,0 +1,158 @@
+﻿@page "/"
+@page "/qrcode"
+@using Microsoft.AspNetCore.SignalR.Client
+@using PingFederateQRCodeServerApp.Controllers
+@using PingFederateQRCodeServerApp.Data;
+@using System.Text.Json;
+@using System.Text.Json.Serialization;
+@using System.Text;
+@using BlazorZXingJs;
+@using System.Reflection;
+
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+@inject PostFormService PostFormService;
+@inject PersistentComponentState ApplicationState
+
+<PageTitle>QR Code Authenticator</PageTitle>
+<div id="center-screen">
+	<div id="auth">
+		<h1>QR Code Authenticator</h1>
+		<div hidden="@(IsAuthenticated)">
+			<div hidden="@(IsConnected)">
+				<h2>Generating QR Code</h2>
+			</div>
+
+			<div hidden="@(!IsConnected)">
+				<div id="qrcode">
+					<QRCodeWriter Text="@_connectionId" Width="400" Heigth="400"></QRCodeWriter>
+					<button @onclick="SubmitAuthentication">
+						Authenticate
+					</button>
+				</div>
+				<h2>Messages</h2>
+				<ul id="messagesList">
+					@foreach (var message in messages)
+					{
+						<li>@message</li>
+					}
+				</ul>
+			</div>
+		</div>
+		<div hidden="@(!IsAuthenticated)">
+			<h2>Welcome @_userId</h2>
+			<table class="table table-striped">
+				<thead class="thead-light">
+					<tr>
+						<th scope="col">Key</th>
+						<th scope="col">Value</th>
+					</tr>
+				</thead>
+				@foreach (var dropDownOption in _qrCodeInitProperties)
+				{
+					<tr>
+						<td>
+							@dropDownOption.Key
+						</td>
+						<td>
+							@dropDownOption.Value
+						</td>
+					</tr>
+				}
+			</table>
+			<ul id="messagesList">
+				@foreach (var message in messages)
+				{
+					<li>@message</li>
+				}
+			</ul>
+		</div>
+	</div>
+</div>
+
+@code {
+	HubConnection? hubConnection;
+	private List<string> messages = new List<string>();
+	private string? _connectionId = "";
+	private string? _userId = "";
+	private Boolean IsAuthenticated = false;
+	private QRCodeInit? _data;
+	private PersistingComponentStateSubscription persistingSubscription;
+	private Dictionary<string, string>? _qrCodeInitProperties;
+
+	protected override async Task OnInitializedAsync()
+	{
+		//	hubConnection = new HubConnectionBuilder().WithUrl(Navigation.ToAbsoluteUri("/qrcodehub")).ConfigureLogging(logging =>
+		//{
+		//	logging.AddConsole();
+		//	logging.SetMinimumLevel(LogLevel.Information);
+		//}).Build();
+		hubConnection = new HubConnectionBuilder().WithUrl(Navigation.ToAbsoluteUri("/qrcodehub")).Build();
+
+		hubConnection.On<string>("connected", (connectionId) =>
+		{
+			_connectionId = connectionId;
+			var encodedMsg = $"Connected: {connectionId}";
+			messages.Add(encodedMsg);
+			InvokeAsync(StateHasChanged);
+		});
+		hubConnection.On<string>("authenticated", (userId) =>
+		{
+			_userId = userId;
+			IsAuthenticated = true;
+			var encodedMsg = $"Authenticated: {userId}";
+			messages.Add(encodedMsg);
+			InvokeAsync(StateHasChanged);
+		});
+
+		persistingSubscription =
+			ApplicationState.RegisterOnPersisting(PersistData);
+
+		if (!ApplicationState.TryTakeFromJson<QRCodeInit>(
+			"qrCodeInit", out var restored))
+		{
+			_data = PostFormService.QRCodeJump;
+		}
+		else
+		{
+			_data = restored!;
+		}
+		_qrCodeInitProperties = _data.GetType()
+		.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+				.ToDictionary(prop => prop.Name, prop => (string)prop.GetValue(_data, null));
+		await hubConnection.StartAsync();
+	}
+
+	public bool IsConnected =>
+			hubConnection?.State == HubConnectionState.Connected;
+
+	private Task PersistData()
+	{
+		ApplicationState.PersistAsJson("qrCodeInit", _data);
+
+		return Task.CompletedTask;
+	}
+
+	public async ValueTask DisposeAsync()
+	{
+		if (hubConnection is not null)
+		{
+			await hubConnection.DisposeAsync();
+		}
+		persistingSubscription.Dispose();
+
+	}
+
+	private async Task SubmitAuthentication()
+	{
+		QRCodeAuthenticationRequest _qrCodeAuthentication = new QRCodeAuthenticationRequest();
+		_qrCodeAuthentication.username = "nirving";
+		_qrCodeAuthentication.connectionId = _connectionId;
+		var todoItemJson = new StringContent(JsonSerializer.Serialize(_qrCodeAuthentication), Encoding.UTF8, "application/json");
+		var httpResponseMessage = await HttpClient.PostAsync("/api/qrcode", todoItemJson);
+		httpResponseMessage.EnsureSuccessStatusCode();
+	}
+}
+
