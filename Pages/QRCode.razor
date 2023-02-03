@@ -8,6 +8,7 @@
 @using System.Text;
 @using BlazorZXingJs;
 @using System.Reflection;
+@using Microsoft.AspNetCore.Http.Connections;
 
 @inject HttpClient HttpClient
 @inject NavigationManager Navigation
@@ -62,7 +63,7 @@
 							@dropDownOption.Value
 						</td>
 					</tr>
-					}
+				}
 			</table>
 			<h2>Response</h2>
 			<table class="table table-striped">
@@ -70,20 +71,20 @@
 					<tr>
 						<th scope="col">Key</th>
 						<th scope="col">Value</th>
-				</tr>
+					</tr>
 				</thead>
 				@foreach (var dropDownOption in _qrCodeInitResponse?.GetType()
-								.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+						.GetProperties(BindingFlags.Instance | BindingFlags.Public)
 						.ToDictionary(prop => prop.Name, prop => (string)prop.GetValue(_qrCodeInitResponse, null)))
 				{
-						<tr>
-							<td>
+					<tr>
+						<td>
 							@dropDownOption.Key
-							</td>
-							<td>
+						</td>
+						<td>
 							@dropDownOption.Value
-							</td>
-						</tr>
+						</td>
+					</tr>
 				}
 			</table>
 			<h2>Messages</h2>
@@ -109,13 +110,7 @@
 
 	protected override async Task OnInitializedAsync()
 	{
-		//	hubConnection = new HubConnectionBuilder().WithUrl(Navigation.ToAbsoluteUri("/qrcodehub")).ConfigureLogging(logging =>
-		//{
-		//	logging.AddConsole();
-		//	logging.SetMinimumLevel(LogLevel.Information);
-		//}).Build();
 		hubConnection = new HubConnectionBuilder().WithUrl(Navigation.ToAbsoluteUri("/qrcodehub")).Build();
-
 		hubConnection.On<string>("connected", (connectionId) =>
 		{
 			_connectionId = connectionId;
